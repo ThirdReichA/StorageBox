@@ -1,4 +1,4 @@
-name: StorageBox
+name: StorageBoxWW
 version: '${project.version}'
 main: net.howaky.storagebox.StorageBox
 api-version: 1.19

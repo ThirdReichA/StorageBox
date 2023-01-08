@@ -16,7 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -33,6 +32,18 @@ public class StorageBoxListener implements Listener {
         final ItemStack itemStack = event.getItem();
         if (itemStack == null) return;
         if (!isStorage(event.getItem())) return;
+
+        if (Objects.requireNonNull(itemStack.getItemMeta()).getPersistentDataContainer().get(Keys.UUID, PersistentDataType.STRING) == null) {
+            Storage storage = new Storage();
+            UUID uuid = UUID.randomUUID();
+            storage.setUuid(uuid);
+            storage.setAmount(0);
+            storage.setItemStack(new ItemStack(Material.AIR));
+            ItemMeta itemMeta = Objects.requireNonNull(itemStack.getItemMeta());
+            itemMeta.getPersistentDataContainer().set(Keys.UUID, PersistentDataType.STRING, uuid.toString());
+            itemStack.setItemMeta(itemMeta);
+            StorageBox.getPlugin().getStorageProvider().register(storage);
+        }
 
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Storage storage = StorageBox.getPlugin().getStorageProvider().get(itemStack);
@@ -106,30 +117,17 @@ public class StorageBoxListener implements Listener {
             if (isStorage(content)) {
                 Storage storage = StorageBox.getPlugin().getStorageProvider().get(content);
                 if (event.getItem().getItemStack().getItemMeta() == null) continue;
+                if (event.getItem().getItemStack().getType() != storage.getItemStack().getType()) continue;
                 if (event.getItem().getItemStack().getItemMeta().equals(storage.getItemStack().getItemMeta())) {
                     event.setCancelled(true);
                     storage.setAmount(storage.getAmount() + event.getItem().getItemStack().getAmount());
                     event.getItem().remove();
                     player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.2f, 2.0f);
+                    InventoryGui gui = InventoryGui.get(player);
+                    if (gui != null) gui.draw();
                     break;
                 }
             }
-        }
-    }
-
-    @EventHandler
-    public void onCreateStorage(CraftItemEvent event) {
-        ItemStack itemStack = event.getCurrentItem();
-        if (isStorage(itemStack)) {
-            Storage storage = new Storage();
-            UUID uuid = UUID.randomUUID();
-            storage.setUuid(uuid);
-            storage.setAmount(0);
-            storage.setItemStack(new ItemStack(Material.AIR));
-            ItemMeta itemMeta = Objects.requireNonNull(itemStack.getItemMeta());
-            itemMeta.getPersistentDataContainer().set(Keys.UUID, PersistentDataType.STRING, uuid.toString());
-            itemStack.setItemMeta(itemMeta);
-            StorageBox.getPlugin().getStorageProvider().register(storage);
         }
     }
 
